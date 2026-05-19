@@ -35,4 +35,16 @@ export type CategoryGroup =
   | 'Technology'
   | 'Style'
   | 'Family'
-  | 'Adventure';
+  | 'Adventure'
+  | 'Nomad Life'
+  | 'Transformation'
+  | 'Education'
+  | 'Social Life'
+  | 'Content Creator'
+  | 'Wellness'
+  | 'Professional Arts'
+  | 'Science & Innovation'
+  | 'Impact & Legacy'
+  | 'Romance'
+  | 'Alternative Living'
+  | 'Pets & Animals';
