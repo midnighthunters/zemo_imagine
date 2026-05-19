@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -140,6 +141,7 @@ function FeedNav({ top, onBoards, onDaily, onSettings }: { top: number; onBoards
 function NavButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable style={styles.navItem} onPress={onPress}>
+      <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFillObject} />
       <View style={styles.navDot} />
       <Text style={styles.navText}>{label}</Text>
     </Pressable>
@@ -165,7 +167,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 7,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    overflow: 'hidden',
   },
   navDot: {
     width: 7,

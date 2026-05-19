@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -65,6 +66,7 @@ export default function SettingsScreen() {
 function SettingRow({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <View style={styles.row}>
+      <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFillObject} />
       <View style={styles.rowText}>
         <Text style={styles.rowTitle}>{title}</Text>
         <Text style={styles.rowSubtitle}>{subtitle}</Text>
@@ -77,6 +79,7 @@ function SettingRow({ title, subtitle, children }: { title: string; subtitle: st
 function Stepper({ title, value, onMinus, onPlus }: { title: string; value: number; onMinus: () => void; onPlus: () => void }) {
   return (
     <View style={styles.row}>
+      <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFillObject} />
       <View>
         <Text style={styles.rowTitle}>{title}</Text>
         <Text style={styles.rowSubtitle}>{value.toFixed(2)}</Text>
@@ -98,7 +101,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, gap: 14 },
   kicker: { color: colors.primary, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   title: { color: colors.text, marginBottom: 8, fontSize: 34, lineHeight: 39, fontWeight: '900' },
-  row: { minHeight: 82, borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.line },
+  row: { minHeight: 82, borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
   rowText: { flex: 1, paddingRight: 16 },
   rowTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   rowSubtitle: { color: colors.mutedText, marginTop: 5, fontSize: 13, lineHeight: 18 },

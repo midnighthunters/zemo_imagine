@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { colors } from '../theme/colors';
@@ -36,13 +36,17 @@ export function ImagineButton({ label, onPress, disabled, loading, variant = 'pr
         style,
       ]}
     >
-      {variant === 'primary' ? (
-        <LinearGradient colors={['#F8C77E', '#F97316']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient}>
-          {content}
-        </LinearGradient>
-      ) : (
-        content
-      )}
+      <View style={styles.inner}>
+        {variant === 'primary' ? (
+          <LinearGradient colors={['#F8C77E', '#F97316']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient}>
+            {content}
+          </LinearGradient>
+        ) : (
+          <View style={styles.ghostInner}>
+             {content}
+          </View>
+        )}
+      </View>
     </Pressable>
   );
 }
@@ -51,11 +55,16 @@ const styles = StyleSheet.create({
   base: {
     minHeight: 54,
     borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  inner: {
+    flex: 1,
+    borderRadius: 28,
     overflow: 'hidden',
-    flexDirection: 'row',
-    gap: 10,
   },
   gradient: {
     minHeight: 54,
@@ -67,10 +76,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   ghost: {
+    shadowColor: '#FFFFFF',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  ghostInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.glass,
     paddingHorizontal: 18,
+    borderRadius: 28,
   },
   disabled: {
     opacity: 0.45,

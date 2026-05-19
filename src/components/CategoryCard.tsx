@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { ImagineCategory } from '../data/types';
@@ -25,18 +26,21 @@ function CategoryCardComponent({ category, selected, onPress }: Props) {
         onPressOut={() => {
           scale.value = withSpring(1);
         }}
-        style={[styles.card, selected && styles.selected]}
+        style={[styles.shadowContainer, selected && styles.selectedShadow]}
       >
-        <View style={styles.topRow}>
-          <Text style={styles.emoji}>{category.emoji}</Text>
-          <Text style={styles.count}>100 futures</Text>
+        <View style={[styles.card, selected && styles.selectedBorder]}>
+          <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFillObject} />
+          <View style={styles.topRow}>
+            <Text style={styles.emoji}>{category.emoji}</Text>
+            <Text style={styles.count}>100 futures</Text>
+          </View>
+          <Text numberOfLines={2} style={styles.title}>
+            {category.title}
+          </Text>
+          <Text numberOfLines={3} style={styles.description}>
+            {category.description}
+          </Text>
         </View>
-        <Text numberOfLines={2} style={styles.title}>
-          {category.title}
-        </Text>
-        <Text numberOfLines={3} style={styles.description}>
-          {category.description}
-        </Text>
       </Pressable>
     </Animated.View>
   );
@@ -49,20 +53,27 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 6,
   },
+  shadowContainer: {
+    flex: 1,
+    borderRadius: 18,
+  },
+  selectedShadow: {
+    shadowColor: colors.primary,
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+  },
   card: {
+    flex: 1,
     minHeight: 164,
     borderRadius: 18,
     padding: 16,
-    backgroundColor: colors.glass,
     borderWidth: 1,
     borderColor: colors.line,
+    overflow: 'hidden',
   },
-  selected: {
+  selectedBorder: {
     borderColor: colors.primary,
     backgroundColor: 'rgba(248,199,126,0.16)',
-    shadowColor: colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
   },
   topRow: {
     flexDirection: 'row',
