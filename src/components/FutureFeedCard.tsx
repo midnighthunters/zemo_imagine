@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bookmark, Heart, Play, Share2, Shuffle, Volume2 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagineCategory, ImagineScrollItem } from '../data/types';
 import { colors, groupGradients } from '../theme/colors';
@@ -38,10 +39,11 @@ function FutureFeedCardComponent({
   onToggleMute,
 }: Props) {
   const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const gradient = groupGradients[category?.group ?? 'Travel'] ?? ['#0A0F1F', '#1F2937', '#334155'];
 
   return (
-    <LinearGradient colors={gradient} style={[styles.card, { height }]}>
+    <LinearGradient colors={gradient} style={[styles.card, { height, paddingTop: Math.max(62, insets.top + 20), paddingBottom: Math.max(34, insets.bottom + 14) }]}>
       <View style={styles.glow} />
       <View style={styles.topBar}>
         <View style={styles.pill}>
@@ -58,7 +60,7 @@ function FutureFeedCardComponent({
         {!!item.rewardHint && <Text style={styles.reward}>Unlock hint: {item.rewardHint}</Text>}
       </View>
 
-      <View style={styles.rail}>
+      <View style={[styles.rail, { bottom: Math.max(116, insets.bottom + 96) }]}>
         <Action active={liked} label="Like" onPress={onLike}>
           <Heart color={liked ? colors.rose : colors.text} fill={liked ? colors.rose : 'transparent'} size={24} />
         </Action>
@@ -76,7 +78,7 @@ function FutureFeedCardComponent({
         </Action>
       </View>
 
-      <Pressable onPress={onChangeCategory} style={({ pressed }) => [styles.change, pressed && styles.pressed]}>
+      <Pressable onPress={onChangeCategory} style={({ pressed }) => [styles.change, { bottom: Math.max(34, insets.bottom + 14) }, pressed && styles.pressed]}>
         <Shuffle color={colors.text} size={18} />
         <Text style={styles.changeText}>Change Future</Text>
       </Pressable>
@@ -98,8 +100,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     paddingHorizontal: 22,
-    paddingTop: 62,
-    paddingBottom: 34,
     overflow: 'hidden',
   },
   glow: {
@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
   rail: {
     position: 'absolute',
     right: 18,
-    bottom: 116,
     gap: 14,
   },
   action: {
@@ -180,7 +179,6 @@ const styles = StyleSheet.create({
   change: {
     position: 'absolute',
     left: 22,
-    bottom: 34,
     height: 52,
     borderRadius: 26,
     paddingHorizontal: 18,

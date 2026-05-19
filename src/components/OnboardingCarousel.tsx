@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowRight } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../theme/colors';
 import { ImagineButton } from './ImagineButton';
@@ -22,6 +23,7 @@ type Props = {
 
 export function OnboardingCarousel({ onDone, onSkip }: Props) {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<(typeof slides)[number]>>(null);
   const [index, setIndex] = useState(0);
 
@@ -40,7 +42,7 @@ export function OnboardingCarousel({ onDone, onSkip }: Props) {
 
   return (
     <LinearGradient colors={['#0A0F1F', '#172554', '#7C2D12']} style={styles.screen}>
-      <Pressable onPress={onSkip} style={styles.skip}>
+      <Pressable onPress={onSkip} style={[styles.skip, { top: Math.max(58, insets.top + 20) }]}>
         <Text style={styles.skipText}>Skip</Text>
       </Pressable>
 
@@ -63,7 +65,7 @@ export function OnboardingCarousel({ onDone, onSkip }: Props) {
         )}
       />
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(42, insets.bottom + 20) }]}>
         <View style={styles.dots}>
           {slides.map((slide, dotIndex) => (
             <View key={slide[0]} style={[styles.dot, dotIndex === index && styles.dotActive]} />
@@ -85,7 +87,6 @@ const styles = StyleSheet.create({
   },
   skip: {
     position: 'absolute',
-    top: 58,
     right: 22,
     zIndex: 5,
     padding: 10,
@@ -130,7 +131,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 24,
-    paddingBottom: 42,
     gap: 22,
   },
   dots: {

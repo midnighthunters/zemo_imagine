@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryBottomSheet } from '../src/components/CategoryBottomSheet';
 import { FutureFeedCard } from '../src/components/FutureFeedCard';
@@ -15,6 +16,7 @@ import { loadScrollItems } from '../src/utils/scrollDataLoader';
 
 export default function FeedScreen() {
   const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const listRef = useRef<FlashListRef<ImagineScrollItem>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -116,6 +118,7 @@ export default function FeedScreen() {
         onSelect={changeCategory}
       />
       <FeedNav
+        top={Math.max(58, insets.top + 20)}
         onBoards={() => router.push('/boards')}
         onDaily={() => router.push('/daily')}
         onSettings={() => router.push('/settings')}
@@ -124,9 +127,9 @@ export default function FeedScreen() {
   );
 }
 
-function FeedNav({ onBoards, onDaily, onSettings }: { onBoards: () => void; onDaily: () => void; onSettings: () => void }) {
+function FeedNav({ top, onBoards, onDaily, onSettings }: { top: number; onBoards: () => void; onDaily: () => void; onSettings: () => void }) {
   return (
-    <View pointerEvents="box-none" style={styles.nav}>
+    <View pointerEvents="box-none" style={[styles.nav, { top }]}>
       <NavButton label="Boards" onPress={onBoards} />
       <NavButton label="Daily" onPress={onDaily} />
       <NavButton label="Settings" onPress={onSettings} />
@@ -151,7 +154,6 @@ const styles = StyleSheet.create({
   nav: {
     position: 'absolute',
     right: 18,
-    top: 58,
     flexDirection: 'row',
     gap: 10,
   },

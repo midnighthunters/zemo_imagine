@@ -3,11 +3,13 @@ import 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { colors } from '../src/theme/colors';
 
 export default function RootLayout() {
   return (
+    <SafeAreaProvider>
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
@@ -20,5 +22,6 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
       </Stack>
     </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }

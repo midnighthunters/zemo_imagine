@@ -4,6 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryCard } from '../src/components/CategoryCard';
 import { ImagineButton } from '../src/components/ImagineButton';
@@ -13,6 +14,7 @@ import { colors } from '../src/theme/colors';
 import { filterCategories } from '../src/utils/categoryFilters';
 
 export default function CategoriesScreen() {
+  const insets = useSafeAreaInsets();
   const storedSelected = useImagineStore((state) => state.selectedCategoryIds);
   const selectCategories = useImagineStore((state) => state.selectCategories);
   const completeOnboarding = useImagineStore((state) => state.completeOnboarding);
@@ -41,7 +43,7 @@ export default function CategoriesScreen() {
 
   return (
     <LinearGradient colors={['#080D1C', '#111827', '#172554']} style={styles.screen}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(62, insets.top + 20) }]}>
         <Text style={styles.kicker}>Imagine</Text>
         <Text style={styles.title}>What future excites you the most?</Text>
         <Text style={styles.subtitle}>Pick one or more categories. You can change anytime.</Text>
@@ -62,7 +64,7 @@ export default function CategoriesScreen() {
         contentContainerStyle={styles.list}
       />
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(28, insets.bottom + 14) }]}>
         <Pressable onPress={surprise} style={styles.surprise}>
           <Text style={styles.surpriseText}>Surprise me</Text>
         </Pressable>
@@ -82,7 +84,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 62,
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
@@ -126,7 +127,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 18,
     paddingTop: 14,
-    paddingBottom: 28,
     flexDirection: 'row',
     gap: 12,
     backgroundColor: 'rgba(8,13,28,0.92)',

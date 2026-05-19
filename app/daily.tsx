@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagineButton } from '../src/components/ImagineButton';
 import { categoryById } from '../src/data/categories';
@@ -10,6 +11,7 @@ import { useImagineStore } from '../src/store/useImagineStore';
 import { colors } from '../src/theme/colors';
 
 export default function DailyScreen() {
+  const insets = useSafeAreaInsets();
   const activeCategoryId = useImagineStore((state) => state.activeCategoryId);
   const earnedRewards = useImagineStore((state) => state.earnedRewards);
   const category = categoryById.get(activeCategoryId);
@@ -18,7 +20,7 @@ export default function DailyScreen() {
 
   return (
     <LinearGradient colors={['#080D1C', '#172554', '#4C1D95']} style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: Math.max(62, insets.top + 20), paddingBottom: Math.max(42, insets.bottom + 20) }]}>
         <Text style={styles.kicker}>Daily Imagine Drop</Text>
         <Text style={styles.title}>Five futures for today</Text>
         <Text style={styles.quote}>“Your future gets clearer when you give it beautiful details.”</Text>
@@ -50,7 +52,7 @@ export default function DailyScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { paddingTop: 62, paddingHorizontal: 20, paddingBottom: 42 },
+  content: { paddingHorizontal: 20 },
   kicker: { color: colors.primary, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   title: { color: colors.text, marginTop: 8, fontSize: 36, lineHeight: 41, fontWeight: '900' },
   quote: { color: 'rgba(255,255,255,0.78)', marginTop: 16, fontSize: 19, lineHeight: 28, fontWeight: '700' },

@@ -1,12 +1,14 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagineButton } from '../src/components/ImagineButton';
 import { useImagineStore } from '../src/store/useImagineStore';
 import { colors } from '../src/theme/colors';
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const muted = useImagineStore((state) => state.muted);
   const autoPlayTTS = useImagineStore((state) => state.autoPlayTTS);
   const ttsRate = useImagineStore((state) => state.ttsRate);
@@ -20,7 +22,7 @@ export default function SettingsScreen() {
 
   return (
     <LinearGradient colors={['#080D1C', '#111827', '#312E81']} style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: Math.max(62, insets.top + 20), paddingBottom: Math.max(42, insets.bottom + 20) }]}>
         <Text style={styles.kicker}>Settings</Text>
         <Text style={styles.title}>Voice, saved futures, and flow</Text>
 
@@ -93,7 +95,7 @@ function Stepper({ title, value, onMinus, onPlus }: { title: string; value: numb
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { paddingTop: 62, paddingHorizontal: 20, paddingBottom: 42, gap: 14 },
+  content: { paddingHorizontal: 20, gap: 14 },
   kicker: { color: colors.primary, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   title: { color: colors.text, marginBottom: 8, fontSize: 34, lineHeight: 39, fontWeight: '900' },
   row: { minHeight: 82, borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.line },
