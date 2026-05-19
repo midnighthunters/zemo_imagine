@@ -10,7 +10,7 @@ import { ImagineButton } from '../src/components/ImagineButton';
 import { categories } from '../src/data/categories';
 import { useImagineStore } from '../src/store/useImagineStore';
 import { colors } from '../src/theme/colors';
-import { filterCategories } from '../src/utils/categoryFilters';
+import { filterCategories, quickFilters } from '../src/utils/categoryFilters';
 
 export default function CategoriesScreen() {
   const storedSelected = useImagineStore((state) => state.selectedCategoryIds);
@@ -18,8 +18,9 @@ export default function CategoriesScreen() {
   const completeOnboarding = useImagineStore((state) => state.completeOnboarding);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string[]>(storedSelected);
+  const [activeGroup, setActiveGroup] = useState<string | undefined>();
 
-  const data = useMemo(() => filterCategories(query), [query]);
+  const data = useMemo(() => filterCategories(query, activeGroup), [query, activeGroup]);
 
   const toggle = (categoryId: string) => {
     Haptics.selectionAsync();
@@ -40,7 +41,7 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <LinearGradient colors={['#080D1C', '#111827', '#172554']} style={styles.screen}>
+    <LinearGradient colors={['#050816', '#0B1222', '#1E1B4B']} style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.kicker}>Imagine</Text>
         <Text style={styles.title}>What future excites you the most?</Text>
@@ -48,9 +49,33 @@ export default function CategoriesScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search 240 future categories"
+          placeholder="Search 240+ future categories"
           placeholderTextColor={colors.mutedText}
           style={styles.search}
+        />
+      </View>
+
+      <View style={styles.filterContainer}>
+        <FlashList
+          data={['All', ...quickFilters]}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => {
+            const isActive = item === 'All' ? !activeGroup : activeGroup === item;
+            return (
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setActiveGroup(item === 'All' ? undefined : item);
+                }}
+                style={[styles.filterItem, isActive && styles.filterItemActive]}
+              >
+                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{item}</Text>
+              </Pressable>
+            );
+          }}
         />
       </View>
 
@@ -84,7 +109,7 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 62,
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 16,
   },
   kicker: {
     color: colors.primary,
@@ -106,14 +131,42 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   search: {
-    marginTop: 18,
-    minHeight: 52,
+    marginTop: 20,
+    minHeight: 56,
     borderRadius: 18,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
+    fontSize: 16,
     color: colors.text,
-    backgroundColor: colors.glass,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  filterContainer: {
+    marginBottom: 8,
+  },
+  filterList: {
+    paddingHorizontal: 16,
+  },
+  filterItem: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginRight: 10,
+  },
+  filterItemActive: {
+    backgroundColor: 'rgba(248, 199, 126, 0.15)',
+    borderColor: colors.primary,
+  },
+  filterText: {
+    color: colors.mutedText,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  filterTextActive: {
+    color: colors.primary,
   },
   list: {
     paddingHorizontal: 10,

@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 
 import { colors } from '../theme/colors';
 
@@ -15,6 +16,13 @@ type Props = {
 };
 
 export function ImagineButton({ label, onPress, disabled, loading, variant = 'primary', icon, style }: Props) {
+  const handlePress = () => {
+    if (!disabled && !loading) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onPress();
+    }
+  };
+
   const content = (
     <>
       {loading ? <ActivityIndicator color={colors.text} /> : icon}
@@ -27,7 +35,7 @@ export function ImagineButton({ label, onPress, disabled, loading, variant = 'pr
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled || loading}
-      onPress={onPress}
+      onPress={handlePress}
       style={({ pressed }) => [
         styles.base,
         variant === 'ghost' && styles.ghost,
@@ -37,7 +45,12 @@ export function ImagineButton({ label, onPress, disabled, loading, variant = 'pr
       ]}
     >
       {variant === 'primary' ? (
-        <LinearGradient colors={['#F8C77E', '#F97316']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient}>
+        <LinearGradient
+          colors={['#F8C77E', '#FB7185']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
           {content}
         </LinearGradient>
       ) : (
@@ -65,6 +78,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   ghost: {
     borderWidth: 1,
