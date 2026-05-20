@@ -1,157 +1,339 @@
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import { X } from 'lucide-react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  Modal,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  ScrollView,
+  TextInput,
+  useWindowDimensions,
+  Platform,
+} from 'react-native';
+import { Search, X, ChevronRight, Check } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
 
-import { categories, categoryById } from '../data/categories';
-import { ImagineCategory } from '../data/types';
+import { categories, categoryById, categoryGroups } from '../data/categories';
+import { useImagineStore } from '../store/useImagineStore';
 import { colors } from '../theme/colors';
-import { filterCategories, quickFilters } from '../utils/categoryFilters';
-import { CategoryCard } from './CategoryCard';
+import { radius } from '../theme/radius';
+import { spacing } from '../theme/spacing';
+import { typography } from '../theme/typography';
+import { GlassCard } from './ui/GlassCard';
 
-type Props = {
+interface CategoryBottomSheetProps {
   visible: boolean;
   selectedCategoryIds: string[];
   onClose: () => void;
   onSelect: (categoryId: string) => void;
-};
+}
 
-export function CategoryBottomSheet({ visible, selectedCategoryIds, onClose, onSelect }: Props) {
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<string | undefined>();
+export const CategoryBottomSheet: React.FC<CategoryBottomSheetProps> = ({
+  visible,
+  selectedCategoryIds,
+  onClose,
+  onSelect,
+}) => {
+  const { height } = useWindowDimensions();
+  const [search, setSearch] = useState('');
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
-  const data = useMemo(() => {
-    const selected = selectedCategoryIds
-      .map((id) => categoryById.get(id))
-      .filter(Boolean) as ImagineCategory[];
-    const selectedIds = new Set(selected.map((category) => category.id));
-    const rest = filterCategories(query, filter, categories).filter((category) => !selectedIds.has(category.id));
-    return [...selected, ...rest];
-  }, [filter, query, selectedCategoryIds]);
+  const activeCategoryId = useImagineStore((state) => state.activeCategoryId);
+  const hapticsEnabled = useImagineStore((state) => state.hapticsEnabled);
+
+  const filteredCategories = useMemo(() => {
+    return categories.filter((c) => {
+      const isSelected = selectedCategoryIds.includes(c.id);
+      if (!isSelected) return false;
+
+      const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase());
+      const matchesGroup = !activeGroup || c.group === activeGroup;
+      return matchesSearch && matchesGroup;
+    });
+  }, [search, activeGroup, selectedCategoryIds]);
+
+  const handleSelect = (id: string) => {
+    if (hapticsEnabled) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onSelect(id);
+    onClose();
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>Change Future</Text>
-              <Text style={styles.subtitle}>Pick a category and the feed resets instantly.</Text>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <Pressable style={styles.dismiss} onPress={onClose} />
+
+        <View style={[styles.sheet, { height: height * 0.7 }]}>
+          <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill}>
+            <View style={styles.handleContainer}>
+              <View style={styles.handle} />
             </View>
-            <Pressable onPress={onClose} style={styles.close}>
-              <X color={colors.text} size={22} />
-            </Pressable>
-          </View>
 
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search categories"
-            placeholderTextColor={colors.mutedText}
-            style={styles.search}
-          />
-
-          <FlashList
-            data={quickFilters}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => setFilter(filter === item ? undefined : item)} style={[styles.filter, filter === item && styles.filterActive]}>
-                <Text style={styles.filterText}>{item}</Text>
+            <View style={styles.header}>
+              <Text style={styles.title}>Switch Future</Text>
+              <Pressable onPress={onClose} style={styles.closeButton}>
+                <X size={20} color={colors.mutedText} />
               </Pressable>
-            )}
-          />
+            </View>
 
-          <FlashList
-            data={data}
-            numColumns={2}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <CategoryCard
-                category={item}
-                selected={selectedCategoryIds.includes(item.id)}
-                onPress={(categoryId) => {
-                  onSelect(categoryId);
-                  onClose();
-                }}
-              />
-            )}
-          />
+            <View style={styles.searchContainer}>
+              <View style={styles.searchBar}>
+                <Search size={18} color={colors.mutedText} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search your categories..."
+                  placeholderTextColor={colors.mutedText}
+                  value={search}
+                  onChangeText={setSearch}
+                />
+              </View>
+            </View>
+
+            <View style={styles.groupsContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupsContent}>
+                <GroupChip
+                  label="All"
+                  active={activeGroup === null}
+                  onPress={() => setActiveGroup(null)}
+                />
+                {categoryGroups.map((group) => {
+                    const hasSelectedInGroup = categories.some(c => c.group === group && selectedCategoryIds.includes(c.id));
+                    if (!hasSelectedInGroup) return null;
+                    return (
+                        <GroupChip
+                        key={group}
+                        label={group}
+                        active={activeGroup === group}
+                        onPress={() => setActiveGroup(group)}
+                        />
+                    );
+                })}
+              </ScrollView>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.listContent}>
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    style={[
+                        styles.item,
+                        activeCategoryId === item.id && styles.activeItem
+                    ]}
+                    onPress={() => handleSelect(item.id)}
+                  >
+                    <View style={styles.itemEmojiContainer}>
+                        <Text style={styles.itemEmoji}>{item.emoji}</Text>
+                    </View>
+                    <View style={styles.itemContent}>
+                      <Text style={styles.itemTitle}>{item.title}</Text>
+                      <Text style={styles.itemGroup}>{item.group}</Text>
+                    </View>
+                    {activeCategoryId === item.id ? (
+                        <View style={styles.activeBadge}>
+                            <Check size={14} color="#000" strokeWidth={3} />
+                        </View>
+                    ) : (
+                        <ChevronRight size={18} color="rgba(255,255,255,0.2)" />
+                    )}
+                  </Pressable>
+                ))
+              ) : (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>No matching categories in your selection.</Text>
+                    <Pressable onPress={onClose} style={styles.manageButton}>
+                        <Text style={styles.manageButtonText}>Manage Categories</Text>
+                    </Pressable>
+                </View>
+              )}
+            </ScrollView>
+          </BlurView>
         </View>
       </View>
     </Modal>
   );
+};
+
+function GroupChip({ label, active, onPress }: any) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.groupChip, active && styles.activeGroupChip]}
+    >
+      <Text style={[styles.groupChipText, active && styles.activeGroupChipText]}>{label}</Text>
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.42)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  dismiss: {
+    flex: 1,
   },
   sheet: {
-    height: '86%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 18,
-    backgroundColor: '#0B1222',
-    borderWidth: 1,
-    borderColor: colors.line,
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  handleContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
   },
   title: {
+    fontSize: typography.h2,
+    fontWeight: typography.weights.bold as any,
     color: colors.text,
-    fontSize: 26,
-    fontWeight: '900',
   },
-  subtitle: {
-    marginTop: 4,
-    color: colors.mutedText,
-    fontSize: 13,
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  close: {
-    width: 44,
+  searchContainer: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.glass,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    gap: 8,
   },
-  search: {
-    minHeight: 50,
-    borderRadius: 18,
-    paddingHorizontal: 16,
+  searchInput: {
+    flex: 1,
     color: colors.text,
-    backgroundColor: colors.glass,
-    borderWidth: 1,
-    borderColor: colors.line,
-    marginBottom: 12,
+    fontSize: 15,
   },
-  filter: {
-    height: 38,
-    borderRadius: 19,
+  groupsContainer: {
+    marginBottom: spacing.md,
+  },
+  groupsContent: {
+    paddingHorizontal: spacing.lg,
+    gap: 8,
+  },
+  groupChip: {
     paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.glass,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: colors.line,
-    marginRight: 8,
-    marginBottom: 12,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  filterActive: {
+  activeGroupChip: {
+    backgroundColor: colors.primary,
     borderColor: colors.primary,
-    backgroundColor: 'rgba(248,199,126,0.18)',
   },
-  filterText: {
-    color: colors.text,
-    fontWeight: '800',
+  groupChipText: {
+    color: colors.mutedText,
     fontSize: 12,
+    fontWeight: typography.weights.semibold as any,
   },
+  activeGroupChipText: {
+    color: '#000',
+  },
+  listContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: radius.lg,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  activeItem: {
+    backgroundColor: 'rgba(248, 199, 126, 0.05)',
+    borderColor: 'rgba(248, 199, 126, 0.2)',
+  },
+  itemEmojiContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+  },
+  itemEmoji: {
+    fontSize: 20,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: typography.weights.bold as any,
+    color: colors.text,
+  },
+  itemGroup: {
+    fontSize: 11,
+    color: colors.mutedText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  activeBadge: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+  },
+  emptyContainer: {
+      alignItems: 'center',
+      paddingVertical: 40,
+  },
+  emptyText: {
+      color: colors.mutedText,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+  },
+  manageButton: {
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: radius.full,
+      backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  manageButtonText: {
+      color: colors.text,
+      fontWeight: typography.weights.bold as any,
+  }
 });

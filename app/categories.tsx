@@ -1,153 +1,387 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  ScrollView,
+} from 'react-native';
 import { router } from 'expo-router';
+import { Sparkles, X, ChevronRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { CategoryCard } from '../src/components/CategoryCard';
-import { ImagineButton } from '../src/components/ImagineButton';
-import { categories } from '../src/data/categories';
+import { Screen } from '../src/components/ui/Screen';
+import { GradientBackground } from '../src/components/ui/GradientBackground';
+import { SearchBar } from '../src/components/ui/SearchBar';
+import { categories, categoryGroups } from '../src/data/categories';
 import { useImagineStore } from '../src/store/useImagineStore';
 import { colors } from '../src/theme/colors';
-import { filterCategories } from '../src/utils/categoryFilters';
+import { spacing } from '../src/theme/spacing';
+import { typography } from '../src/theme/typography';
+import { radius } from '../src/theme/radius';
 
 export default function CategoriesScreen() {
-  const storedSelected = useImagineStore((state) => state.selectedCategoryIds);
+  const [search, setSearch] = useState('');
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+
+  const selectedCategoryIds = useImagineStore((state) => state.selectedCategoryIds);
   const selectCategories = useImagineStore((state) => state.selectCategories);
-  const completeOnboarding = useImagineStore((state) => state.completeOnboarding);
-  const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<string[]>(storedSelected);
+  const hapticsEnabled = useImagineStore((state) => state.hapticsEnabled);
 
-  const data = useMemo(() => filterCategories(query), [query]);
+  const filteredCategories = useMemo(() => {
+    return categories.filter((c) => {
+      const matchesSearch =
+        c.title.toLowerCase().includes(search.toLowerCase()) ||
+        c.group.toLowerCase().includes(search.toLowerCase());
+      const matchesGroup = !activeGroup || c.group === activeGroup;
+      return matchesSearch && matchesGroup;
+    });
+  }, [search, activeGroup]);
 
-  const toggle = (categoryId: string) => {
-    Haptics.selectionAsync();
-    setSelected((current) =>
-      current.includes(categoryId) ? current.filter((id) => id !== categoryId) : [...current, categoryId],
-    );
+  const recommendedCategories = useMemo(() => {
+    return categories.filter((c) => ['Travel', 'Wealth', 'Career', 'Fitness'].includes(c.group)).slice(0, 6);
+  }, []);
+
+  const toggleCategory = (id: string) => {
+    if (hapticsEnabled) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    const next = selectedCategoryIds.includes(id)
+      ? selectedCategoryIds.filter((cid) => cid !== id)
+      : [...selectedCategoryIds, id];
+    selectCategories(next);
   };
 
-  const continueToFeed = (ids: string[]) => {
-    selectCategories(ids);
-    completeOnboarding();
-    router.replace('/feed');
+  const selectAllInGroup = () => {
+    if (!activeGroup) return;
+    const groupIds = categories.filter((c) => c.group === activeGroup).map((c) => c.id);
+    const otherIds = selectedCategoryIds.filter((id) => {
+        const cat = categories.find(c => c.id === id);
+        return cat && cat.group !== activeGroup;
+    });
+
+    const allSelected = groupIds.every(id => selectedCategoryIds.includes(id));
+
+    if (allSelected) {
+        selectCategories(otherIds);
+    } else {
+        selectCategories([...new Set([...otherIds, ...groupIds])]);
+    }
+
+    if (hapticsEnabled) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
   };
 
-  const surprise = () => {
-    const category = categories[Math.floor(Math.random() * categories.length)];
-    continueToFeed([category.id]);
+  const surpriseMe = () => {
+    const random = [...categories].sort(() => 0.5 - Math.random()).slice(0, 5).map(c => c.id);
+    selectCategories(random);
+    if (hapticsEnabled) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
   };
 
   return (
-    <LinearGradient colors={['#080D1C', '#111827', '#172554']} style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={styles.kicker}>Imagine</Text>
-        <Text style={styles.title}>What future excites you the most?</Text>
-        <Text style={styles.subtitle}>Pick one or more categories. You can change anytime.</Text>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search 240 future categories"
-          placeholderTextColor={colors.mutedText}
-          style={styles.search}
-        />
-      </View>
+    <Screen withSafeArea={true}>
+      <GradientBackground>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Discovery</Text>
+            <Text style={styles.subtitle}>What does your future look like?</Text>
+          </View>
+          <Pressable onPress={surpriseMe} style={styles.surpriseButton}>
+            <Sparkles size={16} color={colors.primary} />
+            <Text style={styles.surpriseText}>Surprise me</Text>
+          </Pressable>
+        </View>
 
-      <FlashList
-        data={data}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <CategoryCard category={item} selected={selected.includes(item.id)} onPress={toggle} />}
-        contentContainerStyle={styles.list}
-      />
+        <View style={styles.searchContainer}>
+          <SearchBar
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search travel, career, wealth..."
+          />
+        </View>
 
-      <View style={styles.footer}>
-        <Pressable onPress={surprise} style={styles.surprise}>
-          <Text style={styles.surpriseText}>Surprise me</Text>
-        </Pressable>
-        <ImagineButton
-          label={selected.length === 0 ? 'Choose a future' : `Start dreamscrolling (${selected.length})`}
-          disabled={selected.length === 0}
-          onPress={() => continueToFeed(selected)}
-          style={styles.cta}
+        <View style={styles.groupsContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupsContent}>
+            <GroupChip
+              label="All"
+              active={activeGroup === null}
+              onPress={() => setActiveGroup(null)}
+            />
+            {categoryGroups.map((group) => (
+              <GroupChip
+                key={group}
+                label={group}
+                active={activeGroup === group}
+                onPress={() => setActiveGroup(group)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
+        <FlatList
+          data={filteredCategories}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            !search && !activeGroup ? (
+              <View style={styles.recommendedSection}>
+                <Text style={styles.sectionTitle}>Recommended for you</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recommendedContent}>
+                  {recommendedCategories.map(c => (
+                    <Pressable key={c.id} onPress={() => toggleCategory(c.id)} style={styles.miniCard}>
+                         <Text style={styles.miniEmoji}>{c.emoji}</Text>
+                         <Text style={styles.miniTitle} numberOfLines={1}>{c.title}</Text>
+                         {selectedCategoryIds.includes(c.id) && <View style={styles.miniCheck} />}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+                <View style={styles.listHeadingRow}>
+                    <Text style={styles.sectionTitle}>All Categories</Text>
+                </View>
+              </View>
+            ) : activeGroup ? (
+                <View style={styles.groupHeader}>
+                    <Text style={styles.sectionTitle}>{activeGroup} Futures</Text>
+                    <Pressable onPress={selectAllInGroup}>
+                        <Text style={styles.selectAllText}>
+                            {categories.filter(c => c.group === activeGroup).every(id => selectedCategoryIds.includes(id.id)) ? 'Deselect All' : 'Select All'}
+                        </Text>
+                    </Pressable>
+                </View>
+            ) : null
+          }
+          renderItem={({ item }) => (
+            <CategoryCard
+              category={item}
+              selected={selectedCategoryIds.includes(item.id)}
+              onPress={() => toggleCategory(item.id)}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <X size={48} color={colors.mutedText} strokeWidth={1} />
+              <Text style={styles.emptyText}>No categories found for "{search}"</Text>
+            </View>
+          }
         />
-      </View>
-    </LinearGradient>
+
+        {selectedCategoryIds.length > 0 && (
+          <View style={styles.ctaContainer}>
+            <View style={styles.ctaContent}>
+                <View>
+                    <Text style={styles.ctaCount}>{selectedCategoryIds.length} selected</Text>
+                    <Text style={styles.ctaHint}>You can change this anytime</Text>
+                </View>
+                <Pressable
+                onPress={() => router.replace('/feed')}
+                style={styles.ctaButton}
+                >
+                <Text style={styles.ctaButtonText}>Start Dreamscrolling</Text>
+                <ChevronRight size={20} color="#000" />
+                </Pressable>
+            </View>
+          </View>
+        )}
+      </GradientBackground>
+    </Screen>
+  );
+}
+
+function GroupChip({ label, active, onPress }: any) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.groupChip, active && styles.activeGroupChip]}
+    >
+      <Text style={[styles.groupChipText, active && styles.activeGroupChipText]}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
   header: {
-    paddingTop: 62,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  kicker: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    marginBottom: spacing.lg,
   },
   title: {
-    marginTop: 10,
+    fontSize: typography.h1,
+    fontWeight: typography.weights.black as any,
     color: colors.text,
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: '900',
+    letterSpacing: -1,
   },
   subtitle: {
-    marginTop: 10,
+    fontSize: typography.bodySmall,
     color: colors.mutedText,
-    fontSize: 15,
-    lineHeight: 22,
   },
-  search: {
-    marginTop: 18,
-    minHeight: 52,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    color: colors.text,
-    backgroundColor: colors.glass,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  list: {
-    paddingHorizontal: 10,
-    paddingBottom: 130,
-  },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 28,
+  surpriseButton: {
     flexDirection: 'row',
-    gap: 12,
-    backgroundColor: 'rgba(8,13,28,0.92)',
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(248, 199, 126, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 199, 126, 0.2)',
   },
-  surprise: {
-    height: 54,
-    borderRadius: 27,
-    paddingHorizontal: 18,
+  surpriseText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: typography.weights.bold as any,
+  },
+  searchContainer: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  groupsContainer: {
+    marginBottom: spacing.md,
+  },
+  groupsContent: {
+    paddingHorizontal: spacing.md,
+    gap: 8,
+  },
+  groupChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  activeGroupChip: {
+    backgroundColor: colors.text,
+    borderColor: colors.text,
+  },
+  groupChipText: {
+    color: colors.mutedText,
+    fontSize: 13,
+    fontWeight: typography.weights.semibold as any,
+  },
+  activeGroupChipText: {
+    color: '#000',
+  },
+  listContent: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: 120,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
+  recommendedSection: {
+    marginBottom: spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.weights.bold as any,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  recommendedContent: {
+    gap: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  miniCard: {
+    width: 100,
+    height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: radius.md,
+    padding: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.glass,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  surpriseText: {
+  miniEmoji: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  miniTitle: {
+    fontSize: 10,
     color: colors.text,
-    fontWeight: '900',
+    fontWeight: typography.weights.bold as any,
+    textAlign: 'center',
   },
-  cta: {
-    flex: 1,
+  miniCheck: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
+  listHeadingRow: {
+      marginTop: spacing.lg,
+  },
+  groupHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+  },
+  selectAllText: {
+      color: colors.primary,
+      fontSize: 13,
+      fontWeight: typography.weights.bold as any,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    color: colors.mutedText,
+    marginTop: 16,
+    fontSize: typography.body,
+  },
+  ctaContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.md,
+    paddingBottom: spacing.xl,
+    backgroundColor: 'rgba(3, 7, 18, 0.9)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  ctaContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+  },
+  ctaCount: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: typography.weights.bold as any,
+  },
+  ctaHint: {
+    color: colors.mutedText,
+    fontSize: 12,
+  },
+  ctaButton: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: radius.full,
+    gap: 8,
+  },
+  ctaButtonText: {
+    color: '#000',
+    fontSize: 15,
+    fontWeight: typography.weights.bold as any,
   },
 });
